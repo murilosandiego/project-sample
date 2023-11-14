@@ -1,21 +1,19 @@
-import 'package:meta/meta.dart';
-
 import '../../domain/errors/domain_error.dart';
 import '../../domain/usecases/remove_post.dart';
 import '../http/http_client.dart';
 
 class RemoteRemovePost implements RemovePost {
   final HttpClient httpClient;
-  final String url;
+  final String path;
 
-  RemoteRemovePost({@required this.httpClient, @required this.url});
+  RemoteRemovePost({required this.httpClient, required this.path});
 
   @override
-  Future<bool> remove({@required int postId}) async {
+  Future<bool> remove({required int postId}) async {
     try {
       await httpClient.request(
-        url: '$url/$postId',
-        method: 'delete',
+        path: '$path/$postId',
+        method: HttpMethod.delete,
       );
       return true;
     } catch (_) {

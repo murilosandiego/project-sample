@@ -1,19 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:news_app/main/factories/usecases/authetication.dart';
 
 import '../../infra/storage/local_storage_adater.dart';
-import '../../ui/helpers/user_manager.dart';
-import '../../ui/pages/feed/cubit/feed_cubit.dart';
-import '../../ui/pages/feed/feed_page.dart';
-import '../../ui/pages/login/cubit/form_cubit.dart';
-import '../../ui/pages/login/login_page.dart';
-import '../../ui/pages/signup/cubit/form_signup_cubit.dart';
-import '../../ui/pages/signup/signup_page.dart';
-import '../../ui/pages/splash/cubit/splash_cubit.dart';
-import '../../ui/pages/splash/splash_page.dart';
-import '../../ui/pages/welcome/welcome_page.dart';
+import '../../presentation/pages/feed/cubit/feed_cubit.dart';
+import '../../presentation/pages/feed/feed_page.dart';
+import '../../presentation/pages/login/cubit/login_cubit.dart';
+import '../../presentation/pages/login/login_page.dart';
+import '../../presentation/pages/signup/cubit/form_sign_up_cubit.dart';
+import '../../presentation/pages/signup/signup_page.dart';
+import '../../presentation/pages/splash/cubit/splash_cubit.dart';
+import '../../presentation/pages/splash/splash_page.dart';
 import '../factories/usecases/add_account_factory.dart';
-import '../factories/usecases/authetication.dart';
 import '../factories/usecases/load_current_account_factory.dart';
 import '../factories/usecases/load_posts_factory.dart';
 import '../factories/usecases/remove_post_factory.dart';
@@ -23,17 +21,15 @@ import '../singletons/local_storage_singleton.dart';
 
 abstract class AppRoutes {
   static const splash = '/';
-  static const welcome = '/welcome';
   static const login = '/login';
   static const feed = '/feed';
   static const newPost = '/new-post';
-  static const signup = 'signup';
+  static const signUp = 'signUp';
 
   static getRoutes(_) {
     final Map<String, WidgetBuilder> routes = {
       splash: (_) => _makeSplashPage(),
-      welcome: (_) => WelcomePage(),
-      signup: (_) => _makeSignUpPage(),
+      signUp: (_) => _makeSignUpPage(),
       login: (_) => _makeLoginPage(),
       feed: (_) => _makeFeedPage(),
     };
@@ -47,7 +43,6 @@ abstract class AppRoutes {
         addAccount: AddAccountFactory.makeRemoteAddAccount(),
         saveCurrentAccount:
             SaveCurrentAccountFactory.makeLocalSaveCurrentAccount(),
-        userManager: context.read<UserManager>(),
       ),
       child: SignUpPage(),
     );
@@ -67,13 +62,13 @@ abstract class AppRoutes {
     );
   }
 
-  static BlocProvider<FormLoginCubit> _makeLoginPage() {
+  static BlocProvider<LoginCubit> _makeLoginPage() {
     return BlocProvider(
-      create: (context) => FormLoginCubit(
-          authetication: AutheticationFactory.makeRemoteAuthetication(),
-          saveCurrentAccount:
-              SaveCurrentAccountFactory.makeLocalSaveCurrentAccount(),
-          userManager: context.read<UserManager>()),
+      create: (context) => LoginCubit(
+        authentication: AuthenticationFactory.makeRemoteAuthentication(),
+        saveCurrentAccount:
+            SaveCurrentAccountFactory.makeLocalSaveCurrentAccount(),
+      ),
       child: LoginPage(),
     );
   }
@@ -82,7 +77,6 @@ abstract class AppRoutes {
     return BlocProvider(
       create: (context) => SplashCubit(
         loadCurrentAccount: makeLocalLoadCurrentAccount(),
-        userManager: context.read<UserManager>(),
       ),
       child: SplashPage(),
     );

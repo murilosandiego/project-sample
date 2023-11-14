@@ -1,10 +1,9 @@
 import 'package:equatable/equatable.dart';
-import 'package:meta/meta.dart' show required;
 
-import '../entities/account_entity.dart';
+import '../entities/account.dart';
 
 abstract class AddAccount {
-  Future<AccountEntity> add(AddAccountParams params);
+  Future<Account> add(AddAccountParams params);
 }
 
 class AddAccountParams extends Equatable {
@@ -13,9 +12,9 @@ class AddAccountParams extends Equatable {
   final String secret;
 
   AddAccountParams({
-    @required this.name,
-    @required this.email,
-    @required this.secret,
+    required this.name,
+    required this.email,
+    required this.secret,
   });
 
   @override

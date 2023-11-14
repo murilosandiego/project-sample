@@ -1,13 +1,15 @@
-import '../../domain/entities/user_entity.dart';
+import 'package:news_app/domain/entities/user.dart';
 
-class UserModel extends UserEntity {
+class UserModel {
   UserModel({
-    this.id,
-    this.name,
+    required this.id,
+    required this.name,
     this.profilePicture,
   });
 
-  final String name;
-  final String profilePicture;
   final int id;
+  final String name;
+  final String? profilePicture;
+
+  User toEntity() => User(id: id, name: name, email: '');
 }

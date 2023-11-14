@@ -1,10 +1,9 @@
 import 'package:equatable/equatable.dart';
-import 'package:meta/meta.dart' show required;
 
-import '../entities/account_entity.dart';
+import '../entities/account.dart';
 
-abstract class Authetication {
-  Future<AccountEntity> auth(AuthenticationParams params);
+abstract class Authentication {
+  Future<Account> auth(AuthenticationParams params);
 }
 
 class AuthenticationParams extends Equatable {
@@ -12,8 +11,8 @@ class AuthenticationParams extends Equatable {
   final String secret;
 
   AuthenticationParams({
-    @required this.email,
-    @required this.secret,
+    required this.email,
+    required this.secret,
   });
 
   @override

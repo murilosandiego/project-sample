@@ -1,10 +1,10 @@
-import 'package:meta/meta.dart' show required;
+enum HttpMethod { post, get, put, delete }
 
 abstract class HttpClient {
   Future<dynamic> request({
-    @required String url,
-    @required String method,
-    Map body,
-    Map headers,
+    required String path,
+    required HttpMethod method,
+    Map? body,
+    Map? headers,
   });
 }

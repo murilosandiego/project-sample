@@ -1,5 +1,7 @@
-import '../entities/account_entity.dart';
+import 'dart:async';
+
+import '../entities/account.dart';
 
 abstract class LoadCurrentAccount {
-  Future<AccountEntity> load();
+  Future<Account?> load();
 }

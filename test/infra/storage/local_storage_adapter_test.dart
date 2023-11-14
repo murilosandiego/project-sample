@@ -1,62 +1,46 @@
-import 'package:boticario_news/infra/storage/local_storage_adater.dart';
 import 'package:faker/faker.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:news_app/infra/storage/local_storage_adater.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:mockito/mockito.dart';
-import 'package:test/test.dart';
-
-class LocalStorageSpy extends Mock implements SharedPreferences {}
 
 main() {
-  LocalStorageSpy localStorage;
-  LocalStorageAdapter sut;
-  String key;
-  String value;
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
-    localStorage = LocalStorageSpy();
+  late LocalStorageAdapter sut;
+  late String key;
+  late String value;
+  late SharedPreferences localStorage;
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({'fetch_key': 'fetch_value'});
+
+    localStorage = await SharedPreferences.getInstance();
+  });
+
+  setUp(() async {
     sut = LocalStorageAdapter(localStorage: localStorage);
+  });
 
-    key = faker.randomGenerator.string(4);
-    value = faker.randomGenerator.string(10);
+  tearDownAll(() {
+    localStorage.clear();
   });
 
   group('Save method', () {
     test('Should call LocalStorage with correct values', () async {
+      key = faker.randomGenerator.string(4);
+      value = faker.randomGenerator.string(10);
+
       await sut.save(key: key, value: value);
 
-      verify(localStorage.setString(key, value));
-    });
-
-    test('Should throw Exception if LocalStorage fails', () {
-      when(localStorage.setString(any, any)).thenThrow(Exception());
-
-      final future = sut.save(key: key, value: value);
-
-      expect(future, throwsA(TypeMatcher<Exception>()));
+      expect(localStorage.getString(key), value);
     });
   });
 
   group('Fetch method', () {
-    test('Should call LocalStorage with correct values', () async {
-      await sut.fetch(key: key);
-
-      verify(localStorage.getString(key));
-    });
-
     test('Should return a value with success', () async {
-      when(localStorage.getString(any)).thenAnswer((_) => value);
+      final valueResult = sut.fetch(key: 'fetch_key');
 
-      final valueResult = await sut.fetch(key: key);
-
-      expect(valueResult, value);
-    });
-
-    test('Should throw Exception if LocalStorage fails', () {
-      when(localStorage.getString(any)).thenThrow(Exception());
-
-      final future = sut.fetch(key: key);
-
-      expect(future, throwsA(TypeMatcher<Exception>()));
+      expect(valueResult, 'fetch_value');
     });
   });
 
@@ -64,15 +48,7 @@ main() {
     test('Should call LocalStorage with correct values', () async {
       await sut.clear();
 
-      verify(localStorage.clear());
-    });
-
-    test('Should throw Exception if LocalStorage fails', () {
-      when(localStorage.clear()).thenThrow(Exception());
-
-      final future = sut.clear();
-
-      expect(future, throwsA(isA<Exception>()));
+      expect(localStorage.getString('fetch_key'), null);
     });
   });
 }

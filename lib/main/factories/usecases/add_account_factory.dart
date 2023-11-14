@@ -6,6 +6,6 @@ import '../http/http_client_factory.dart';
 class AddAccountFactory {
   static AddAccount makeRemoteAddAccount() => RemoteAddAccount(
         httpClient: HttpClientFactory.makeHttpClientAdapter(),
-        url: makeApiUrl('auth/local/register'),
+        path: makeApiUrl('authentication'),
       );
 }

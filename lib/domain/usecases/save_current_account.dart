@@ -1,5 +1,5 @@
-import '../entities/account_entity.dart';
+import '../entities/account.dart';
 
 abstract class SaveCurrentAccount {
-  Future<void> save(AccountEntity account);
+  Future<void> save(Account account);
 }

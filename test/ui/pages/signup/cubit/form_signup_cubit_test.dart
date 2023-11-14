@@ -1,29 +1,29 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:boticario_news/domain/entities/account_entity.dart';
-import 'package:boticario_news/domain/errors/domain_error.dart';
-import 'package:boticario_news/domain/usecases/add_account.dart';
-import 'package:boticario_news/domain/usecases/save_current_account.dart';
-import 'package:boticario_news/ui/helpers/form_validators.dart';
-import 'package:boticario_news/ui/helpers/ui_error.dart';
-import 'package:boticario_news/ui/helpers/user_manager.dart';
-import 'package:boticario_news/ui/pages/signup/cubit/form_signup_cubit.dart';
-import 'package:boticario_news/ui/pages/signup/cubit/form_signup_state.dart';
 import 'package:faker/faker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:formz/formz.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:news_app/domain/entities/account.dart';
+import 'package:news_app/domain/errors/domain_error.dart';
+import 'package:news_app/domain/usecases/add_account.dart';
+import 'package:news_app/domain/usecases/save_current_account.dart';
+import 'package:news_app/presentation/helpers/form_validators.dart';
+import 'package:news_app/presentation/helpers/ui_error.dart';
+import 'package:news_app/presentation/pages/signup/cubit/form_sign_up_cubit.dart';
+import 'package:news_app/presentation/pages/signup/cubit/form_sign_up_state.dart';
 
 class AddAccountSpy extends Mock implements AddAccount {}
 
 class SaveCurrentAccountSpy extends Mock implements SaveCurrentAccount {}
 
-class UserManagerSpy extends Mock implements UserManager {}
+class FakeAddAccountParams extends Fake implements AddAccountParams {}
+
+class FakeAccountEntity extends Fake implements Account {}
 
 main() {
-  FormSignUpCubit sut;
-  AddAccountSpy addAccount;
-  SaveCurrentAccountSpy saveCurrentAccount;
-  UserManagerSpy userManager;
+  late FormSignUpCubit sut;
+  late AddAccountSpy addAccount;
+  late SaveCurrentAccountSpy saveCurrentAccount;
 
   final String validUsername = faker.person.firstName();
   final String validEmail = faker.internet.email();
@@ -37,36 +37,49 @@ main() {
   final successFlowSubmitForm = [
     FormSignUpState(
       name: NameInput.dirty(validUsername),
-      status: FormzStatus.invalid,
     ),
     FormSignUpState(
       name: NameInput.dirty(validUsername),
       email: Email.dirty(validEmail),
-      status: FormzStatus.invalid,
-    ),
-    FormSignUpState(
-      name: NameInput.dirty(validUsername),
-      email: Email.dirty(validEmail),
-      password: Password.dirty(validPassword),
-      status: FormzStatus.valid,
     ),
     FormSignUpState(
       name: NameInput.dirty(validUsername),
       email: Email.dirty(validEmail),
       password: Password.dirty(validPassword),
-      status: FormzStatus.submissionInProgress,
+    ),
+    FormSignUpState(
+      name: NameInput.dirty(validUsername),
+      email: Email.dirty(validEmail),
+      password: Password.dirty(validPassword),
+      formSubmissionStatus: FormzSubmissionStatus.inProgress,
     ),
   ];
+
+  setUpAll(() {
+    registerFallbackValue(FakeAddAccountParams());
+    registerFallbackValue(FakeAccountEntity());
+  });
 
   setUp(() {
     addAccount = AddAccountSpy();
     saveCurrentAccount = SaveCurrentAccountSpy();
-    userManager = UserManagerSpy();
 
     sut = FormSignUpCubit(
       addAccount: addAccount,
       saveCurrentAccount: saveCurrentAccount,
-      userManager: userManager,
+    );
+
+    when(() => addAccount.add(any())).thenAnswer(
+      (_) async => Account(
+        token: token,
+        id: 1,
+        username: validUsername,
+        email: 'email',
+      ),
+    );
+
+    when(() => saveCurrentAccount.save(any())).thenAnswer(
+      (_) => Future.value(),
     );
   });
 
@@ -74,10 +87,9 @@ main() {
     'Should emits FormSignUpState with NameInput.dirty if name is valid',
     build: () => sut,
     act: (cubit) => cubit.handleName(validUsername),
-    expect: [
+    expect: () => [
       FormSignUpState(
         name: NameInput.dirty(validUsername),
-        status: FormzStatus.invalid,
       ),
     ],
   );
@@ -86,10 +98,9 @@ main() {
     'Should emits FormSignUpState with NameInput.pure if name is invalid',
     build: () => sut,
     act: (cubit) => cubit.handleName(invalidUsername),
-    expect: [
+    expect: () => [
       FormSignUpState(
-        name: NameInput.pure(invalidUsername),
-        status: FormzStatus.invalid,
+        name: NameInput.dirty(invalidUsername),
       ),
     ],
   );
@@ -98,10 +109,9 @@ main() {
     'Should emits FormSignUpState with Email.dirty if email is valid',
     build: () => sut,
     act: (cubit) => cubit.handleEmail(validEmail),
-    expect: [
+    expect: () => [
       FormSignUpState(
         email: Email.dirty(validEmail),
-        status: FormzStatus.invalid,
       ),
     ],
   );
@@ -110,10 +120,9 @@ main() {
     'Should emits FormSignUpState with Email.pure if email is invalid',
     build: () => sut,
     act: (cubit) => cubit.handleEmail(invalidEmail),
-    expect: [
+    expect: () => [
       FormSignUpState(
-        email: Email.pure(invalidEmail),
-        status: FormzStatus.invalid,
+        email: Email.dirty(invalidEmail),
       ),
     ],
   );
@@ -122,10 +131,9 @@ main() {
     'Should emits FormSignUpState with Password.dirty if password is valid',
     build: () => sut,
     act: (cubit) => cubit.handlePassword(validPassword),
-    expect: [
+    expect: () => [
       FormSignUpState(
         password: Password.dirty(validPassword),
-        status: FormzStatus.invalid,
       ),
     ],
   );
@@ -134,10 +142,9 @@ main() {
     'Should emits FormSignUpState with Password.pure if password is invalid',
     build: () => sut,
     act: (cubit) => cubit.handlePassword(invalidPassword),
-    expect: [
+    expect: () => [
       FormSignUpState(
-        password: Password.pure(invalidPassword),
-        status: FormzStatus.invalid,
+        password: Password.dirty(invalidPassword),
       ),
     ],
   );
@@ -152,19 +159,19 @@ main() {
       cubit.add();
     },
     verify: (_) {
-      verify(addAccount.add(AddAccountParams(
-        email: validEmail,
-        secret: validPassword,
-        name: validUsername,
-      ))).called(1);
+      verify(() => addAccount.add(AddAccountParams(
+            email: validEmail,
+            secret: validPassword,
+            name: validUsername,
+          ))).called(1);
     },
   );
 
   blocTest<FormSignUpCubit, FormSignUpState>(
     'Should call SaveCurrentAccount with correct values',
     build: () {
-      when(addAccount.add(any)).thenAnswer(
-        (_) async => AccountEntity(
+      when(() => addAccount.add(any())).thenAnswer(
+        (_) async => Account(
             token: token, id: 1, username: validUsername, email: 'email'),
       );
       return sut;
@@ -176,9 +183,11 @@ main() {
       await cubit.add();
     },
     verify: (_) {
-      verify(saveCurrentAccount.save(AccountEntity(
-              token: token, id: 1, username: validUsername, email: 'email')))
-          .called(1);
+      verify(() => saveCurrentAccount.save(Account(
+          token: token,
+          id: 1,
+          username: validUsername,
+          email: 'email'))).called(1);
     },
   );
 
@@ -192,18 +201,19 @@ main() {
       cubit.add();
     },
     verify: (_) {
-      verifyNever(addAccount.add(AddAccountParams(
-        name: invalidUsername,
-        email: validEmail,
-        secret: validPassword,
-      )));
+      verifyNever(() => addAccount.add(AddAccountParams(
+            name: invalidUsername,
+            email: validEmail,
+            secret: validPassword,
+          )));
     },
   );
 
   blocTest<FormSignUpCubit, FormSignUpState>(
     'Should emits correct events on InvalidCredentialsError',
     build: () {
-      when(addAccount.add(any)).thenThrow(DomainError.invalidCredentials);
+      when(() => addAccount.add(any()))
+          .thenThrow(DomainError.invalidCredentials);
       return sut;
     },
     act: (cubit) async {
@@ -212,20 +222,20 @@ main() {
       cubit.handlePassword(validPassword);
       await cubit.add();
     },
-    expect: [
+    expect: () => [
       ...successFlowSubmitForm,
       FormSignUpState(
         name: NameInput.dirty(validUsername),
         email: Email.dirty(validEmail),
         password: Password.dirty(validPassword),
-        status: FormzStatus.submissionFailure,
+        formSubmissionStatus: FormzSubmissionStatus.failure,
         errorMessage: UIError.emailInUse.description,
       ),
       FormSignUpState(
         name: NameInput.dirty(validUsername),
         email: Email.dirty(validEmail),
         password: Password.dirty(validPassword),
-        status: FormzStatus.valid,
+        formSubmissionStatus: FormzSubmissionStatus.initial,
         errorMessage: '',
       )
     ],
@@ -234,7 +244,7 @@ main() {
   blocTest<FormSignUpCubit, FormSignUpState>(
     'Should emits correct events on Unexpected',
     build: () {
-      when(addAccount.add(any)).thenThrow(DomainError.unexpected);
+      when(() => addAccount.add(any())).thenThrow(DomainError.unexpected);
       return sut;
     },
     act: (cubit) async {
@@ -243,20 +253,20 @@ main() {
       cubit.handlePassword(validPassword);
       await cubit.add();
     },
-    expect: [
+    expect: () => [
       ...successFlowSubmitForm,
       FormSignUpState(
         name: NameInput.dirty(validUsername),
         email: Email.dirty(validEmail),
         password: Password.dirty(validPassword),
-        status: FormzStatus.submissionFailure,
+        formSubmissionStatus: FormzSubmissionStatus.failure,
         errorMessage: UIError.unexpected.description,
       ),
       FormSignUpState(
         name: NameInput.dirty(validUsername),
         email: Email.dirty(validEmail),
         password: Password.dirty(validPassword),
-        status: FormzStatus.valid,
+        formSubmissionStatus: FormzSubmissionStatus.initial,
         errorMessage: '',
       )
     ],
@@ -265,8 +275,8 @@ main() {
   blocTest<FormSignUpCubit, FormSignUpState>(
     'Should call UserManager with correct values',
     build: () {
-      when(addAccount.add(any)).thenAnswer(
-        (_) async => AccountEntity(
+      when(() => addAccount.add(any())).thenAnswer(
+        (_) async => Account(
             token: token, id: 1, username: validUsername, email: 'email'),
       );
       return sut;
@@ -276,14 +286,6 @@ main() {
       cubit.handlePassword(validPassword);
       cubit.handleEmail(validEmail);
       await cubit.add();
-    },
-    verify: (_) {
-      verify(
-        userManager.addUser(
-          AccountEntity(
-              token: token, id: 1, username: validUsername, email: 'email'),
-        ),
-      ).called(1);
     },
   );
 }

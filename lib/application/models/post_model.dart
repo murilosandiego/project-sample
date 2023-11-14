@@ -1,12 +1,13 @@
-import '../../domain/entities/post_entity.dart';
+import 'package:news_app/domain/entities/post.dart';
+
 import 'message_model.dart';
 import 'user_model.dart';
 
-class PostModel extends PostEntity {
+class PostModel {
   PostModel({
-    this.user,
-    this.message,
-    this.id,
+    required this.user,
+    required this.message,
+    required this.id,
   });
 
   final UserModel user;
@@ -14,15 +15,19 @@ class PostModel extends PostEntity {
   final int id;
 
   factory PostModel.fromJsonApiPosts(Map<String, dynamic> json) => PostModel(
-        id: json["id"],
-        user: json["users_permissions_user"] == null
-            ? null
-            : UserModel(
-                name: json["users_permissions_user"]["username"],
-                id: json["users_permissions_user"]["id"],
-              ),
+        id: int.parse(json["id"]),
+        user: UserModel(
+          name: json["username"],
+          id: json["userId"],
+        ),
         message: MessageModel(
-            content: json["message"]["content"],
-            createdAt: DateTime.parse(json["created_at"])),
+            content: json["content"],
+            createdAt: DateTime.parse(json["createdAt"])),
+      );
+
+  PostEntity toEntity() => PostEntity(
+        id: id,
+        user: user.toEntity(),
+        message: message.toEntity(),
       );
 }

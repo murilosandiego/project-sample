@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:faker/faker.dart';
-import 'package:boticario_news/application/http/http_client.dart';
-import 'package:boticario_news/application/http/http_error.dart';
-import 'package:boticario_news/application/usecases/remote_authentication.dart';
-import 'package:boticario_news/domain/errors/domain_error.dart';
-import 'package:boticario_news/domain/usecases/authentication.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:news_app/application/http/http_client.dart';
+import 'package:news_app/application/http/http_error.dart';
+import 'package:news_app/application/usecases/remote_authentication.dart';
+import 'package:news_app/domain/errors/domain_error.dart';
+import 'package:news_app/domain/usecases/authentication.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mocks.dart';
@@ -14,32 +14,40 @@ import '../../mocks/mocks.dart';
 class HttpClientMock extends Mock implements HttpClient {}
 
 void main() {
-  RemoteAuthentication sut;
-  HttpClientMock httpClient;
-  String url;
-  AuthenticationParams params;
+  late RemoteAuthentication sut;
+  late HttpClientMock httpClient;
+  late String path;
+  late AuthenticationParams params;
 
-  mockSuccess() => when(httpClient.request(
-              url: anyNamed('url'),
-              method: anyNamed('method'),
-              body: anyNamed('body')))
-          .thenAnswer(
+  mockSuccess() => when(
+        () => httpClient.request(
+          path: any(named: 'path'),
+          method: any(named: 'method'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer(
         (_) async => jsonDecode(factoryApiResponse),
       );
 
-  mockError(HttpError error) => when(httpClient.request(
-          url: anyNamed('url'),
-          method: anyNamed('method'),
-          body: anyNamed('body')))
-      .thenThrow(error);
+  mockError(HttpError error) => when(
+        () => httpClient.request(
+          path: any(named: 'path'),
+          method: any(named: 'method'),
+          body: any(named: 'body'),
+        ),
+      ).thenThrow(error);
+
+  setUpAll(() {
+    registerFallbackValue(HttpMethod.post);
+  });
 
   setUp(() {
     httpClient = HttpClientMock();
-    url = faker.internet.httpUrl();
+    path = faker.internet.httpUrl();
 
     sut = RemoteAuthentication(
       httpClient: httpClient,
-      url: url,
+      path: path,
     );
     params = AuthenticationParams(
         email: faker.internet.email(), secret: faker.internet.password());
@@ -51,10 +59,10 @@ void main() {
     await sut.auth(params);
 
     verify(
-      httpClient.request(
-        url: url,
-        method: 'post',
-        body: {'identifier': params.email, 'password': params.secret},
+      () => httpClient.request(
+        path: path,
+        method: HttpMethod.post,
+        body: {'email': params.email, 'password': params.secret},
       ),
     );
   });
@@ -94,8 +102,8 @@ void main() {
   test('should return an Account if HttpClient returns 200', () async {
     final account = await sut.auth(params);
 
-    expect(account.token, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9');
-    expect(account.username, 'juca');
-    expect(account.id, 2);
+    expect(account.token, 'token 1');
+    expect(account.username, 'username 1');
+    expect(account.id, 1);
   });
 }

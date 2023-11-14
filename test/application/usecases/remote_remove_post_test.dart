@@ -1,39 +1,46 @@
-import 'package:boticario_news/application/http/http_client.dart';
-import 'package:boticario_news/application/http/http_error.dart';
-import 'package:boticario_news/application/usecases/remote_remove_post.dart';
-import 'package:boticario_news/domain/errors/domain_error.dart';
-
 import 'package:faker/faker.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:news_app/application/http/http_client.dart';
+import 'package:news_app/application/http/http_error.dart';
+import 'package:news_app/application/usecases/remote_remove_post.dart';
+import 'package:news_app/domain/errors/domain_error.dart';
 import 'package:test/test.dart';
 
 class HttpClientMock extends Mock implements HttpClient {}
 
 void main() {
-  RemoteRemovePost sut;
-  HttpClientMock httpClient;
-  String url;
-  int postId;
+  late RemoteRemovePost sut;
+  late HttpClientMock httpClient;
+  late String path;
+  late int postId;
 
-  mockSuccess() => when(httpClient.request(
-        url: anyNamed('url'),
-        method: anyNamed('method'),
-      )).thenAnswer(
+  mockSuccess() => when(
+        () => httpClient.request(
+          path: any(named: 'path'),
+          method: any(named: 'method'),
+        ),
+      ).thenAnswer(
         (_) async => true,
       );
 
-  mockError(HttpError error) => when(httpClient.request(
-        url: anyNamed('url'),
-        method: anyNamed('method'),
-      )).thenThrow(error);
+  mockError(HttpError error) => when(
+        () => httpClient.request(
+          path: any(named: 'path'),
+          method: any(named: 'method'),
+        ),
+      ).thenThrow(error);
+
+  setUpAll(() {
+    registerFallbackValue(HttpMethod.delete);
+  });
 
   setUp(() {
     httpClient = HttpClientMock();
-    url = faker.internet.httpUrl();
+    path = faker.internet.httpUrl();
 
     sut = RemoteRemovePost(
       httpClient: httpClient,
-      url: url,
+      path: path,
     );
 
     postId = faker.randomGenerator.integer(23);
@@ -45,9 +52,9 @@ void main() {
     await sut.remove(postId: postId);
 
     verify(
-      httpClient.request(
-        url: '$url/$postId',
-        method: 'delete',
+      () => httpClient.request(
+        path: '$path/$postId',
+        method: HttpMethod.delete,
       ),
     );
   });

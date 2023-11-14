@@ -11,7 +11,7 @@
       "program": "./test/"
     },
     {
-      "name": "boticario_news",
+      "name": "news_app",
       "request": "launch",
       "type": "dart"
     }

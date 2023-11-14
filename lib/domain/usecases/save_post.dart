@@ -1,7 +1,5 @@
-import 'package:meta/meta.dart';
-
-import '../entities/post_entity.dart';
+import '../entities/post.dart';
 
 abstract class SavePost {
-  Future<PostEntity> save({@required String message, int postId});
+  Future<PostEntity> save({required String message, int? postId});
 }

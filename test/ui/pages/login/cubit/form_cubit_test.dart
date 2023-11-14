@@ -1,90 +1,102 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:boticario_news/domain/entities/account_entity.dart';
-import 'package:boticario_news/domain/errors/domain_error.dart';
-import 'package:boticario_news/domain/usecases/authentication.dart';
-import 'package:boticario_news/domain/usecases/save_current_account.dart';
-import 'package:boticario_news/ui/helpers/form_validators.dart';
-import 'package:boticario_news/ui/helpers/ui_error.dart';
-import 'package:boticario_news/ui/helpers/user_manager.dart';
-import 'package:boticario_news/ui/pages/login/cubit/form_cubit.dart';
-import 'package:boticario_news/ui/pages/login/cubit/form_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:formz/formz.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:news_app/domain/entities/account.dart';
+import 'package:news_app/domain/errors/domain_error.dart';
+import 'package:news_app/domain/usecases/authentication.dart';
+import 'package:news_app/domain/usecases/save_current_account.dart';
+import 'package:news_app/presentation/helpers/form_validators.dart';
+import 'package:news_app/presentation/helpers/ui_error.dart';
+import 'package:news_app/presentation/pages/login/cubit/login_cubit.dart';
+import 'package:news_app/presentation/pages/login/cubit/login_state.dart';
 
-class AuthenticationSpy extends Mock implements Authetication {}
+class AuthenticationSpy extends Mock implements Authentication {}
 
 class SaveAccountSpy extends Mock implements SaveCurrentAccount {}
 
-class UserManagerSpy extends Mock implements UserManager {}
+class FakeAuthenticationParams extends Fake implements AuthenticationParams {}
 
 main() {
-  FormLoginCubit sut;
-  AuthenticationSpy authetication;
-  SaveAccountSpy saveCurrentAccount;
-  UserManagerSpy userManager;
+  late LoginCubit sut;
+  late AuthenticationSpy authentication;
+  late SaveAccountSpy saveCurrentAccount;
 
-  setUp(() {
-    authetication = AuthenticationSpy();
-    saveCurrentAccount = SaveAccountSpy();
-    userManager = UserManagerSpy();
-
-    sut = FormLoginCubit(
-      authetication: authetication,
-      saveCurrentAccount: saveCurrentAccount,
-      userManager: userManager,
-    );
+  setUpAll(() {
+    registerFallbackValue(FakeAuthenticationParams());
   });
 
-  blocTest<FormLoginCubit, FormLoginState>(
-    'Should emits FormLoginState with Email.pure if email is invalid',
+  setUp(() {
+    authentication = AuthenticationSpy();
+    saveCurrentAccount = SaveAccountSpy();
+
+    sut = LoginCubit(
+      authentication: authentication,
+      saveCurrentAccount: saveCurrentAccount,
+    );
+
+    when(() => authentication.auth(any())).thenAnswer(
+      (_) async => Account(
+        token: 'token',
+        id: 1,
+        username: 'user',
+        email: 'email',
+      ),
+    );
+
+    when(() => saveCurrentAccount.save(Account(
+          token: 'token',
+          id: 1,
+          username: 'user',
+          email: 'email',
+        ))).thenAnswer((_) => Future.value());
+  });
+
+  blocTest<LoginCubit, LoginState>(
+    'Should emits LoginState with Email.pure if email is invalid',
     build: () => sut,
     act: (cubit) => cubit.handleEmail('invalid_email'),
-    expect: [
-      FormLoginState(
-        email: Email.pure('invalid_email'),
-        status: FormzStatus.invalid,
+    expect: () => [
+      LoginState(
+        email: Email.dirty('invalid_email'),
       ),
     ],
   );
 
-  blocTest<FormLoginCubit, FormLoginState>(
-    'Should emits FormLoginState with Email.dirty if email is valid',
+  blocTest<LoginCubit, LoginState>(
+    'Should emits LoginState with Email.dirty if email is valid',
     build: () => sut,
     act: (cubit) => cubit.handleEmail('mail@mail.com'),
-    expect: [
-      FormLoginState(
+    expect: () => [
+      LoginState(
         email: Email.dirty('mail@mail.com'),
-        status: FormzStatus.invalid,
       ),
     ],
   );
 
-  blocTest<FormLoginCubit, FormLoginState>(
-    'Should emits FormLoginState with Password.pure if password is invalid',
+  blocTest<LoginCubit, LoginState>(
+    'Should emits LoginState with Password.pure if password is invalid',
     build: () => sut,
     act: (cubit) => cubit.handlePassword('123'),
-    expect: [
-      FormLoginState(
-        password: Password.pure('123'),
-        status: FormzStatus.invalid,
+    expect: () => [
+      LoginState(
+        password: Password.dirty('123'),
       ),
     ],
   );
 
-  blocTest<FormLoginCubit, FormLoginState>(
-    'Should emits FormLoginState with Password.dirty if password is valid',
+  blocTest<LoginCubit, LoginState>(
+    'Should emits LoginState with Password.dirty if password is valid',
     build: () => sut,
     act: (cubit) => cubit.handlePassword('123456'),
-    expect: [
-      FormLoginState(
+    expect: () => [
+      LoginState(
         password: Password.dirty('123456'),
-        status: FormzStatus.invalid,
       ),
     ],
   );
 
-  blocTest<FormLoginCubit, FormLoginState>(
+  blocTest<LoginCubit, LoginState>(
     'Should call Authentication with correct values',
     build: () => sut,
     act: (cubit) {
@@ -93,18 +105,22 @@ main() {
       cubit.auth();
     },
     verify: (_) {
-      verify(authetication.auth(
+      verify(() => authentication.auth(
               AuthenticationParams(email: 'mail@mail.com', secret: '123456')))
           .called(1);
     },
   );
 
-  blocTest<FormLoginCubit, FormLoginState>(
+  blocTest<LoginCubit, LoginState>(
     'Should call saveCurrentAccount with correct values',
     build: () {
-      when(authetication.auth(any)).thenAnswer(
-        (_) async => AccountEntity(
-            token: 'token', id: 1, username: 'user', email: 'email'),
+      when(() => authentication.auth(any())).thenAnswer(
+        (_) async => Account(
+          token: 'token',
+          id: 1,
+          username: 'user',
+          email: 'email',
+        ),
       );
       return sut;
     },
@@ -114,16 +130,17 @@ main() {
       await cubit.auth();
     },
     verify: (_) {
-      verify(saveCurrentAccount.save(AccountEntity(
-              token: 'token', id: 1, username: 'user', email: 'email')))
+      verify(() => saveCurrentAccount.save(
+              Account(token: 'token', id: 1, username: 'user', email: 'email')))
           .called(1);
     },
   );
 
-  blocTest<FormLoginCubit, FormLoginState>(
+  blocTest<LoginCubit, LoginState>(
     'Should emits correct events on InvalidCredentialsError',
     build: () {
-      when(authetication.auth(any)).thenThrow(DomainError.invalidCredentials);
+      when(() => authentication.auth(any()))
+          .thenThrow(DomainError.invalidCredentials);
       return sut;
     },
     act: (cubit) async {
@@ -131,40 +148,38 @@ main() {
       cubit.handlePassword('123456');
       await cubit.auth();
     },
-    expect: [
-      FormLoginState(
+    expect: () => [
+      LoginState(
         email: Email.dirty('mail@mail.com'),
-        status: FormzStatus.invalid,
       ),
-      FormLoginState(
+      LoginState(
         email: Email.dirty('mail@mail.com'),
         password: Password.dirty('123456'),
-        status: FormzStatus.valid,
       ),
-      FormLoginState(
+      LoginState(
         email: Email.dirty('mail@mail.com'),
         password: Password.dirty('123456'),
-        status: FormzStatus.submissionInProgress,
+        formSubmissionsStatus: FormzSubmissionStatus.inProgress,
       ),
-      FormLoginState(
+      LoginState(
         email: Email.dirty('mail@mail.com'),
         password: Password.dirty('123456'),
-        status: FormzStatus.submissionFailure,
         errorMessage: UIError.invalidCredentials.description,
+        formSubmissionsStatus: FormzSubmissionStatus.failure,
       ),
-      FormLoginState(
+      LoginState(
         email: Email.dirty('mail@mail.com'),
         password: Password.dirty('123456'),
-        status: FormzStatus.valid,
         errorMessage: '',
+        formSubmissionsStatus: FormzSubmissionStatus.initial,
       )
     ],
   );
 
-  blocTest<FormLoginCubit, FormLoginState>(
+  blocTest<LoginCubit, LoginState>(
     'Should emits correct events on Unexpected',
     build: () {
-      when(authetication.auth(any)).thenThrow(DomainError.unexpected);
+      when(() => authentication.auth(any())).thenThrow(DomainError.unexpected);
       return sut;
     },
     act: (cubit) async {
@@ -172,42 +187,40 @@ main() {
       cubit.handlePassword('123456');
       await cubit.auth();
     },
-    expect: [
-      FormLoginState(
+    expect: () => [
+      LoginState(
         email: Email.dirty('mail@mail.com'),
-        status: FormzStatus.invalid,
       ),
-      FormLoginState(
+      LoginState(
         email: Email.dirty('mail@mail.com'),
         password: Password.dirty('123456'),
-        status: FormzStatus.valid,
       ),
-      FormLoginState(
+      LoginState(
         email: Email.dirty('mail@mail.com'),
         password: Password.dirty('123456'),
-        status: FormzStatus.submissionInProgress,
+        formSubmissionsStatus: FormzSubmissionStatus.inProgress,
       ),
-      FormLoginState(
+      LoginState(
         email: Email.dirty('mail@mail.com'),
         password: Password.dirty('123456'),
-        status: FormzStatus.submissionFailure,
+        formSubmissionsStatus: FormzSubmissionStatus.failure,
         errorMessage: UIError.unexpected.description,
       ),
-      FormLoginState(
+      LoginState(
         email: Email.dirty('mail@mail.com'),
         password: Password.dirty('123456'),
-        status: FormzStatus.valid,
+        formSubmissionsStatus: FormzSubmissionStatus.initial,
         errorMessage: '',
       )
     ],
   );
 
-  blocTest<FormLoginCubit, FormLoginState>(
+  blocTest<LoginCubit, LoginState>(
     'Should call UserManager with correct values',
     build: () {
-      when(authetication.auth(any)).thenAnswer(
-        (_) async => AccountEntity(
-            token: 'token', id: 1, username: 'user', email: 'email'),
+      when(() => authentication.auth(any())).thenAnswer(
+        (_) async =>
+            Account(token: 'token', id: 1, username: 'user', email: 'email'),
       );
       return sut;
     },
@@ -215,11 +228,6 @@ main() {
       cubit.handlePassword('123456');
       cubit.handleEmail('mail@mail.com');
       await cubit.auth();
-    },
-    verify: (_) {
-      verify(userManager.addUser(AccountEntity(
-              token: 'token', id: 1, username: 'user', email: 'email')))
-          .called(1);
     },
   );
 }

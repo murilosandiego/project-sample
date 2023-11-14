@@ -1,4 +1,4 @@
-package br.com.murilosandiego.boticario_news
+package br.com.murilosandiego.news_app
 
 import io.flutter.embedding.android.FlutterActivity
 

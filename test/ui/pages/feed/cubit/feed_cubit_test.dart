@@ -1,16 +1,16 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:boticario_news/application/storage/local_storage.dart';
-import 'package:boticario_news/domain/errors/domain_error.dart';
-import 'package:boticario_news/domain/usecases/load_posts.dart';
-import 'package:boticario_news/domain/usecases/remove_post.dart';
-import 'package:boticario_news/domain/usecases/save_post.dart';
-import 'package:boticario_news/ui/helpers/ui_error.dart';
-import 'package:boticario_news/ui/pages/feed/cubit/feed_cubit.dart';
-import 'package:boticario_news/ui/pages/feed/cubit/feed_state.dart';
-import 'package:boticario_news/ui/pages/feed/post_viewmodel.dart';
 import 'package:faker/faker.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:news_app/application/storage/local_storage.dart';
+import 'package:news_app/domain/errors/domain_error.dart';
+import 'package:news_app/domain/usecases/load_posts.dart';
+import 'package:news_app/domain/usecases/remove_post.dart';
+import 'package:news_app/domain/usecases/save_post.dart';
+import 'package:news_app/presentation/helpers/ui_error.dart';
+import 'package:news_app/presentation/pages/feed/cubit/feed_cubit.dart';
+import 'package:news_app/presentation/pages/feed/cubit/feed_state.dart';
+import 'package:news_app/presentation/pages/feed/post_view_model.dart';
 
 import '../../../../mocks/mocks.dart';
 
@@ -23,13 +23,13 @@ class RemovePostSpy extends Mock implements RemovePost {}
 class LocalStorageSpy extends Mock implements CacheLocalStorage {}
 
 void main() {
-  FeedCubit sut;
-  LoadPostsSpy loadPosts;
-  SavePostSpy savePost;
-  RemovePostSpy removePost;
-  LocalStorageSpy localStorage;
-  String message;
-  int postId;
+  late FeedCubit sut;
+  late LoadPostsSpy loadPosts;
+  late SavePostSpy savePost;
+  late RemovePostSpy removePost;
+  late LocalStorageSpy localStorage;
+  late String message;
+  late int postId;
 
   setUp(() {
     loadPosts = LoadPostsSpy();
@@ -49,11 +49,12 @@ void main() {
 
   group('Load posts', () {
     mockSuccessPost() =>
-        when(loadPosts.load()).thenAnswer((_) async => newsList);
+        when(() => loadPosts.load()).thenAnswer((_) async => newsList);
 
-    mockError() => when(loadPosts.load()).thenThrow(DomainError.unexpected);
+    mockError() =>
+        when(() => loadPosts.load()).thenThrow(DomainError.unexpected);
 
-    blocTest(
+    blocTest<FeedCubit, FeedState>(
       'Should call loadPosts() once when load',
       build: () {
         mockSuccessPost();
@@ -61,44 +62,44 @@ void main() {
       },
       act: (sut) => sut.load(),
       verify: (_) {
-        verify(loadPosts.load()).called(1);
+        verify(() => loadPosts.load()).called(1);
       },
     );
 
-    blocTest(
+    blocTest<FeedCubit, FeedState>(
       'Should emits FeedLoaded on success',
       build: () {
         mockSuccessPost();
         return sut;
       },
       act: (sut) => sut.load(),
-      expect: [FeedLoaded(news: postsViewModel)],
+      expect: () => [FeedLoaded(news: postsViewModel)],
     );
 
-    blocTest(
+    blocTest<FeedCubit, FeedState>(
       'Should emits FeedLoaded on failure',
       build: () {
         mockError();
         return sut;
       },
       act: (sut) => sut.load(),
-      expect: [
+      expect: () => [
         FeedError(UIError.unexpected.description),
       ],
     );
   });
 
   group('Logout user', () {
-    mockLocalStorageError() =>
-        when(localStorage.clear()).thenThrow(DomainError.unexpected);
-
-    blocTest(
+    blocTest<FeedCubit, FeedState>(
       'Should emits [FeedLoading, LogoutUser] on logoutUser',
+      setUp: () {
+        when(() => localStorage.clear()).thenAnswer((_) => Future.value());
+      },
       build: () {
         return sut;
       },
       act: (sut) => sut.logoutUser(),
-      expect: [
+      expect: () => [
         FeedLoading(),
         LogoutUser(),
       ],
@@ -106,12 +107,14 @@ void main() {
 
     blocTest<FeedCubit, FeedState>(
       'Should emits [FeedLoading, FeedError] on failure',
+      setUp: () {
+        when(() => localStorage.clear()).thenThrow(DomainError.unexpected);
+      },
       build: () {
-        mockLocalStorageError();
         return sut;
       },
       act: (sut) => sut.logoutUser(),
-      expect: [
+      expect: () => [
         FeedLoading(),
         FeedError(UIError.unexpected.description),
       ],
@@ -122,20 +125,21 @@ void main() {
       build: () => sut,
       act: (sut) => sut.logoutUser(),
       verify: (_) {
-        verify(localStorage.clear()).called(1);
+        verify(() => localStorage.clear()).called(1);
       },
     );
   });
 
   group('Create post', () {
-    mockSavePost() => when(savePost.save(
-          message: anyNamed('message'),
-        )).thenAnswer(
+    mockSavePost() => when(() => savePost.save(
+              message: any(named: 'message'),
+            )).thenAnswer(
           (_) async => mockPost,
         );
 
-    mockSavePostError() => when(savePost.save(message: anyNamed('message')))
-        .thenThrow(DomainError.unexpected);
+    mockSavePostError() =>
+        when(() => savePost.save(message: any(named: 'message')))
+            .thenThrow(DomainError.unexpected);
 
     blocTest<FeedCubit, FeedState>(
       'Should call SavePost once when create a post',
@@ -144,7 +148,7 @@ void main() {
       },
       act: (sut) => sut.handleSavePost(message: message),
       verify: (_) {
-        verify(savePost.save(message: message)).called(1);
+        verify(() => savePost.save(message: message)).called(1);
       },
     );
 
@@ -154,9 +158,9 @@ void main() {
         mockSavePost();
         return sut;
       },
-      seed: FeedLoaded(news: postsViewModel),
+      seed: () => FeedLoaded(news: postsViewModel),
       act: (sut) => sut.handleSavePost(message: message),
-      expect: [
+      expect: () => [
         FeedLoaded(
           news: List.of(postsViewModel)
             ..insert(
@@ -181,7 +185,7 @@ void main() {
         return sut;
       },
       act: (sut) => sut.handleSavePost(message: message, postId: postId),
-      expect: [
+      expect: () => [
         FeedError(UIError.unexpected.description),
       ],
     );
@@ -189,8 +193,8 @@ void main() {
 
   group('Update post', () {
     mockEditPost() => when(
-          savePost.save(
-              message: anyNamed('message'), postId: anyNamed('postId')),
+          () => savePost.save(
+              message: any(named: 'message'), postId: any(named: 'postId')),
         ).thenAnswer(
           (_) async => newsList[1].copyWith(
               message: newsList[1].message.copyWith(content: 'Editada'), id: 2),
@@ -203,7 +207,7 @@ void main() {
       },
       act: (sut) => sut.handleSavePost(message: message, postId: postId),
       verify: (_) {
-        verify(savePost.save(message: message, postId: postId)).called(1);
+        verify(() => savePost.save(message: message, postId: postId)).called(1);
       },
     );
 
@@ -213,9 +217,9 @@ void main() {
         mockEditPost();
         return sut;
       },
-      seed: FeedLoaded(news: postsViewModel),
+      seed: () => FeedLoaded(news: postsViewModel),
       act: (sut) => sut.handleSavePost(message: message, postId: 2),
-      expect: [
+      expect: () => [
         FeedLoaded(news: postsViewModelEdited),
       ],
     );
@@ -223,11 +227,11 @@ void main() {
 
   group('Remove post', () {
     mockSuccess() => when(
-          removePost.remove(postId: anyNamed('postId')),
+          () => removePost.remove(postId: any(named: 'postId')),
         ).thenAnswer((_) async => true);
 
     mockError() => when(
-          removePost.remove(postId: anyNamed('postId')),
+          () => removePost.remove(postId: any(named: 'postId')),
         ).thenThrow(DomainError.unexpected);
 
     blocTest<FeedCubit, FeedState>(
@@ -237,7 +241,7 @@ void main() {
       },
       act: (sut) => sut.handleRemovePost(postId: 2),
       verify: (_) {
-        verify(removePost.remove(postId: 2)).called(1);
+        verify(() => removePost.remove(postId: 2)).called(1);
       },
     );
 
@@ -247,9 +251,9 @@ void main() {
         mockSuccess();
         return sut;
       },
-      seed: FeedLoaded(news: postsViewModel),
+      seed: () => FeedLoaded(news: postsViewModel),
       act: (sut) => sut.handleRemovePost(postId: 2),
-      expect: [
+      expect: () => [
         FeedLoaded(news: <NewsViewModel>[postsViewModel[0]]),
       ],
     );
@@ -260,9 +264,9 @@ void main() {
         mockError();
         return sut;
       },
-      seed: FeedLoaded(news: postsViewModel),
+      seed: () => FeedLoaded(news: postsViewModel),
       act: (sut) => sut.handleRemovePost(postId: 2),
-      expect: [
+      expect: () => [
         FeedError(UIError.unexpected.description),
       ],
     );

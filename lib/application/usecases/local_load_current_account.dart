@@ -1,8 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
-import 'package:meta/meta.dart';
-
-import '../../domain/entities/account_entity.dart';
+import '../../domain/entities/account.dart';
 import '../../domain/errors/domain_error.dart';
 import '../../domain/usecases/load_current_account.dart';
 import '../models/account_model.dart';
@@ -11,11 +10,12 @@ import '../storage/local_storage.dart';
 class LocalLoadCurrentAccount implements LoadCurrentAccount {
   final CacheLocalStorage localStorage;
 
-  LocalLoadCurrentAccount({@required this.localStorage});
+  LocalLoadCurrentAccount({required this.localStorage});
+
   @override
-  Future<AccountEntity> load() async {
+  Future<Account?> load() async {
     try {
-      String resultFetched = await localStorage.fetch(key: 'account');
+      final resultFetched = localStorage.fetch(key: 'account');
 
       return resultFetched == null
           ? null

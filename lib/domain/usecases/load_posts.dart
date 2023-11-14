@@ -1,4 +1,4 @@
-import '../entities/post_entity.dart';
+import '../entities/post.dart';
 
 abstract class LoadPosts {
   Future<List<PostEntity>> load();

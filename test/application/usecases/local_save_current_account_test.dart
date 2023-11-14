@@ -1,26 +1,25 @@
 import 'dart:convert';
 
-import 'package:boticario_news/application/models/account_model.dart';
 import 'package:faker/faker.dart';
-import 'package:boticario_news/application/storage/local_storage.dart';
-import 'package:boticario_news/application/usecases/local_save_current_account.dart';
-import 'package:boticario_news/domain/entities/account_entity.dart';
-import 'package:boticario_news/domain/errors/domain_error.dart';
-
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:news_app/application/models/account_model.dart';
+import 'package:news_app/application/storage/local_storage.dart';
+import 'package:news_app/application/usecases/local_save_current_account.dart';
+import 'package:news_app/domain/entities/account.dart';
+import 'package:news_app/domain/errors/domain_error.dart';
 import 'package:test/test.dart';
 
 class LocalStorageSpy extends Mock implements CacheLocalStorage {}
 
 void main() {
-  LocalStorageSpy localStorage;
-  LocalSaveCurrentAccount sut;
-  AccountEntity account;
+  late LocalStorageSpy localStorage;
+  late LocalSaveCurrentAccount sut;
+  late Account account;
 
   setUp(() {
     localStorage = LocalStorageSpy();
     sut = LocalSaveCurrentAccount(localStorage: localStorage);
-    account = AccountEntity(
+    account = Account(
         token: faker.guid.guid(),
         id: faker.randomGenerator.integer(3),
         username: faker.person.name(),
@@ -29,6 +28,10 @@ void main() {
 
   test('Should call the save method of LocalStorage with correct values',
       () async {
+    when(() => localStorage.save(
+        key: any(named: 'key'),
+        value: any(named: 'value'))).thenAnswer((_) => Future.value());
+
     final accountModel = AccountModel(
         token: account.token,
         username: account.username,
@@ -37,15 +40,18 @@ void main() {
 
     await sut.save(account);
 
-    verify(localStorage.save(
-      key: 'account',
-      value: jsonEncode(accountModel.toJson()),
-    ));
+    verify(
+      () => localStorage.save(
+        key: 'account',
+        value: jsonEncode(accountModel.toJson()),
+      ),
+    );
   });
 
   test('Should throw UnexpectedError if LocalStorage throws', () {
-    when(localStorage.save(key: anyNamed('key'), value: anyNamed('value')))
-        .thenThrow(Exception());
+    when(() => localStorage.save(
+        key: any(named: 'key'),
+        value: any(named: 'value'))).thenThrow(Exception());
 
     final future = sut.save(account);
 

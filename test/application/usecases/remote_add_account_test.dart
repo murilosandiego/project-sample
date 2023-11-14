@@ -1,12 +1,12 @@
 import 'dart:convert';
 
-import 'package:boticario_news/application/usecases/remote_add_account.dart';
-import 'package:boticario_news/domain/usecases/add_account.dart';
 import 'package:faker/faker.dart';
-import 'package:boticario_news/application/http/http_client.dart';
-import 'package:boticario_news/application/http/http_error.dart';
-import 'package:boticario_news/domain/errors/domain_error.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:news_app/application/http/http_client.dart';
+import 'package:news_app/application/http/http_error.dart';
+import 'package:news_app/application/usecases/remote_add_account.dart';
+import 'package:news_app/domain/errors/domain_error.dart';
+import 'package:news_app/domain/usecases/add_account.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mocks.dart';
@@ -14,32 +14,40 @@ import '../../mocks/mocks.dart';
 class HttpClientMock extends Mock implements HttpClient {}
 
 void main() {
-  RemoteAddAccount sut;
-  HttpClientMock httpClient;
-  String url;
-  AddAccountParams params;
+  late RemoteAddAccount sut;
+  late HttpClientMock httpClient;
+  late String path;
+  late AddAccountParams params;
 
-  mockSuccess() => when(httpClient.request(
-              url: anyNamed('url'),
-              method: anyNamed('method'),
-              body: anyNamed('body')))
-          .thenAnswer(
+  mockSuccess() => when(
+        () => httpClient.request(
+          path: any(named: 'path'),
+          method: any(named: 'method'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer(
         (_) async => jsonDecode(factoryApiResponse),
       );
 
-  mockError(HttpError error) => when(httpClient.request(
-          url: anyNamed('url'),
-          method: anyNamed('method'),
-          body: anyNamed('body')))
-      .thenThrow(error);
+  mockError(HttpError error) => when(
+        () => httpClient.request(
+          path: any(named: 'path'),
+          method: any(named: 'method'),
+          body: any(named: 'body'),
+        ),
+      ).thenThrow(error);
+
+  setUpAll(() {
+    registerFallbackValue(HttpMethod.post);
+  });
 
   setUp(() {
     httpClient = HttpClientMock();
-    url = faker.internet.httpUrl();
+    path = faker.internet.httpUrl();
 
     sut = RemoteAddAccount(
       httpClient: httpClient,
-      url: url,
+      path: path,
     );
     params = AddAccountParams(
       email: faker.internet.email(),
@@ -54,9 +62,9 @@ void main() {
     await sut.add(params);
 
     verify(
-      httpClient.request(
-        url: url,
-        method: 'post',
+      () => httpClient.request(
+        path: path,
+        method: HttpMethod.post,
         body: {
           'username': params.name,
           'email': params.email,
@@ -101,8 +109,8 @@ void main() {
   test('should return an Account if HttpClient returns 200', () async {
     final account = await sut.add(params);
 
-    expect(account.token, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9');
-    expect(account.username, 'juca');
-    expect(account.id, 2);
+    expect(account.token, 'token 1');
+    expect(account.username, 'username 1');
+    expect(account.id, 1);
   });
 }

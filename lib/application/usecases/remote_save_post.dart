@@ -1,6 +1,4 @@
-import 'package:meta/meta.dart';
-
-import '../../domain/entities/post_entity.dart';
+import '../../domain/entities/post.dart';
 import '../../domain/errors/domain_error.dart';
 import '../../domain/usecases/save_post.dart';
 import '../http/http_client.dart';
@@ -8,26 +6,24 @@ import '../models/post_model.dart';
 
 class RemoteSavePost implements SavePost {
   final HttpClient httpClient;
-  final String url;
+  final String path;
 
   RemoteSavePost({
-    @required this.httpClient,
-    @required this.url,
+    required this.httpClient,
+    required this.path,
   });
 
   @override
-  Future<PostEntity> save({@required String message, int postId}) async {
-    final body = {
-      "message": {"content": message},
-    };
+  Future<PostEntity> save({required String message, int? postId}) async {
+    final body = {"content": message};
     try {
       final httpResponse = await httpClient.request(
-        url: postId == null ? url : '$url/$postId',
-        method: postId == null ? 'post' : 'put',
+        path: postId == null ? path : '$path/$postId',
+        method: postId == null ? HttpMethod.post : HttpMethod.put,
         body: body,
       );
 
-      return PostModel.fromJsonApiPosts(httpResponse);
+      return PostModel.fromJsonApiPosts(httpResponse).toEntity();
     } catch (_) {
       throw DomainError.unexpected;
     }

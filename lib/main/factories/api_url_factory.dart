@@ -1,2 +1,2 @@
-// String makeApiUrl(String path) => 'http://192.168.1.10:1337/$path';
-String makeApiUrl(String path) => 'https://boticario-news.herokuapp.com/$path';
+String makeApiUrl(String path) =>
+    'https://655d16e425b76d9884fe61b5.mockapi.io/api/v1/$path';

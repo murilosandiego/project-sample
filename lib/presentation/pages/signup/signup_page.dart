@@ -1,0 +1,31 @@
+import 'package:app_ui/app_ui.dart';
+import 'package:flutter/material.dart';
+import 'package:news_app/presentation/helpers/presentation_constants.dart';
+
+import 'components/form_sign_up.dart';
+
+class SignUpPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(PresentationConstants.createAccount),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              AppLogo(),
+              SizedBox(height: AppSpacing.xxlg),
+              FormSignUp(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
